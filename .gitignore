@@ -1,129 +1,124 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+import heapq
+from collections import defaultdict, OrderedDict
 
-# C extensions
-*.so
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+class Vehicle:
+    def __init__(self, registration_number, type):
+        self.registration_number = registration_number
+        self.type = type
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+    def __str__(self):
+        return "Vehicle [registration_number=" + self.registration_number + ", type=" + self.type + "]"
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+class ParkingLot:
+    def __init__(self, total_slots):
+        self.registration_slot_mapping = dict()
+        self.type_registration_mapping = defaultdict(list)
+        # we need to maintain the orders of vehicles while showing 'status'
+        self.slot_vehicle_mapping = OrderedDict()
 
-# Translations
-*.mo
-*.pot
+        self.available_parking_lots = []
+ 
+        for i in range(1, total_slots + 1):
+            heapq.heappush(self.available_parking_lots, i)
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+    def status(self):
+        for slot, vehicle in self.slot_vehicle_mapping.items():
+            print("Slot no: {} {}".format(slot, vehicle))
 
-# Flask stuff:
-instance/
-.webassets-cache
+    def get_nearest_slot(self):
+        return heapq.heappop(self.available_parking_lots) if self.available_parking_lots else None
 
-# Scrapy stuff:
-.scrapy
+    def free_slot(self, slot_to_be_freed):
+        found = None
+        for registration_no, slot in self.registration_slot_mapping.items():
+            if slot == slot_to_be_freed:
+                found = registration_no
 
-# Sphinx documentation
-docs/_build/
+        if found:
+            del self.registration_slot_mapping[found]
+            vehicle_to_leave = self.slot_vehicle_mapping[slot_to_be_freed]
+            self.type_registration_mapping[vehicle_to_leave.type].remove(found)
+            del self.slot_vehicle_mapping[slot_to_be_freed]
+            print("leave ", slot_to_be_freed)
+        else:
+            print("slot is not in use")
 
-# PyBuilder
-target/
+    def park_vehicle(self, vehicle):
+        slot_no = self.get_nearest_slot()
+        if slot_no is None:
+            print("Sorry, parking lot is full")
+            return
+        self.slot_vehicle_mapping[slot_no] = vehicle
+        self.registration_slot_mapping[vehicle.registration_number] = slot_no
+        self.type_registration_mapping[vehicle.type].append(vehicle.registration_number)
 
-# Jupyter Notebook
-.ipynb_checkpoints
+    def get_registration_nos_by_type(self, type):
+        return self.type_registration_mapping[type]
 
-# IPython
-profile_default/
-ipython_config.py
+    def get_slot_numbers_by_type(self, type):
+        return [self.registration_slot_mapping[reg_no] for reg_no in self.type_registration_mapping[type]]
 
-# pyenv
-.python-version
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+if __name__ == "__main__":
+    parking_lot = ParkingLot(6)
+    print(parking_lot.available_parking_lots)
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
+    vehicle = Vehicle("PB-21-BJ-1234", "Suv")
+    parking_lot.park_vehicle(vehicle)
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+    vehicle = Vehicle("PB-21-BJ-9999", "Suv")
+    parking_lot.park_vehicle(vehicle)
 
-# SageMath parsed files
-*.sage.py
+    vehicle = Vehicle("PB-21-BB-0001", "Bike")
+    parking_lot.park_vehicle(vehicle)
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+    vehicle = Vehicle("PB-21-BJ-7777", "Pickup van")
+    parking_lot.park_vehicle(vehicle)
 
-# Spyder project settings
-.spyderproject
-.spyproject
+    vehicle = Vehicle("PB-21-BJ-2701", "Car")
+    parking_lot.park_vehicle(vehicle)
 
-# Rope project settings
-.ropeproject
+    vehicle = Vehicle("PB-21-BJ-3141", "Bike")
+    parking_lot.park_vehicle(vehicle)
 
-# mkdocs documentation
-/site
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+    slot_no = parking_lot.get_nearest_slot()
+    print(slot_no)
+    slot_no = parking_lot.get_nearest_slot()
+    print(slot_no)
 
-# Pyre type checker
-.pyre/
+    slot_no_to_be_freed = 4
+    parking_lot.free_slot(slot_no_to_be_freed)
+
+    heapq.heappush(parking_lot.available_parking_lots, 4)
+
+    vehicle = Vehicle("PB-01-BJ-333", "Suv")
+    parking_lot.park_vehicle(vehicle)
+
+    vehicle = Vehicle("DL-12-AA-9999", "Suv")
+    parking_lot.park_vehicle(vehicle)
+    parking_lot.status()
+    print(parking_lot.available_parking_lots)
+    print(parking_lot.registration_slot_mapping)
+    print(parking_lot.type_registration_mapping)
+
+    registration_numbers = parking_lot.get_registration_nos_by_type('Suv')
+    print("Suv : {}".format(registration_numbers))
+    registration_numbers = parking_lot.get_registration_nos_by_type('Pickup van')
+    print("Pickup van : {}".format(registration_numbers))
+    registration_numbers = parking_lot.get_registration_nos_by_type('Bike')
+    print("Bike : {}".format(registration_numbers))
+
+    slot_nos = parking_lot.get_slot_numbers_by_type('Suv')
+    print("Suv : {}".format(slot_nos))
+    slot_nos = parking_lot.get_slot_numbers_by_type('Pickup van')
+    print("Pickup van : {}".format(slot_nos))
+    slot_nos = parking_lot.get_slot_numbers_by_type('Bike')
+    print("Bike : {}".format(slot_nos))
+    parking_lot.status()
+    parking_lot.free_slot(1)
+    parking_lot.free_slot(2)
+    parking_lot.free_slot(3)
+    parking_lot.status()
